@@ -1,0 +1,34 @@
+name: Incident Feedback Loop
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  feedback:
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'resolved'
+
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+
+            if (!issue.labels.some(l => l.name === 'incident')) return;
+
+            const tasks = [
+              "Add monitoring for this failure",
+              "Improve logging for root cause detection",
+              "Add automated test for failure scenario"
+            ];
+
+            for (const task of tasks) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[Prevention] ${task}`,
+                body: `Generated from incident #${issue.number}`,
+                labels: ['prevention']
+              });
+            }
